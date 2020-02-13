@@ -88,3 +88,17 @@ ROBOTSTXT_OBEY = True
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+
+# Settings for using Selenium Hub:
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities 
+
+SELENIUM_GRID_URL = 'http://localhost:4444/wd/hub'  # Example for local grid with docker-compose
+SELENIUM_NODES = 1  # Number of nodes(browsers) you are running on your grid
+SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME  # Example for Chrome
+
+# You need also to change the default download handlers, like so:
+DOWNLOAD_HANDLERS = {
+    "http": "scrapy_headless.HeadlessDownloadHandler",
+    "https": "scrapy_headless.HeadlessDownloadHandler",
+}

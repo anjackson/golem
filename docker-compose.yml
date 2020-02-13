@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  hub:
+    image: selenium/hub:3.141.59-zinc
+    ports:
+      - 4444:4444
+    environment:
+      - GRID_DEBUG=true
+
+  chrome:
+    image: selenium/node-chrome:3.141.59-zinc
+    environment:
+      - HUB_HOST=hub
+      - HUB_PORT=4444
+      - HTTP_PROXY=http://194.66.232.92:3127/
+      - HTTPS_PROXY=http://194.66.232.92:3127/
+    volumes:
+      - /dev/shm:/dev/shm
+    depends_on:
+      - hub
+
