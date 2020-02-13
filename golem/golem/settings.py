@@ -99,7 +99,8 @@ SELENIUM_GRID_URL = os.environ.get('SELENIUM_GRID_URL', 'http://localhost:4444/w
 # Number of nodes (browsers) you are running on your grid:
 SELENIUM_NODES = int(os.environ.get('SELENIUM_NODES', 1))
 # Require Chrome
-SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME  
+SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME
+SELENIUM_CAPABILITIES['acceptInsecureCerts'] = True
 
 # You need also to change the default download handlers, like so:
 DOWNLOAD_HANDLERS = {
