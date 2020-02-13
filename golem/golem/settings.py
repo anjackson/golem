@@ -91,11 +91,15 @@ ROBOTSTXT_OBEY = True
 
 
 # Settings for using Selenium Hub:
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities 
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+import os
 
-SELENIUM_GRID_URL = 'http://localhost:4444/wd/hub'  # Example for local grid with docker-compose
-SELENIUM_NODES = 1  # Number of nodes(browsers) you are running on your grid
-SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME  # Example for Chrome
+# Default for local grid with docker-compose:
+SELENIUM_GRID_URL = os.environ.get('SELENIUM_GRID_URL', 'http://localhost:4444/wd/hub')
+# Number of nodes (browsers) you are running on your grid:
+SELENIUM_NODES = int(os.environ.get('SELENIUM_NODES', 1))
+# Require Chrome
+SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME  
 
 # You need also to change the default download handlers, like so:
 DOWNLOAD_HANDLERS = {
