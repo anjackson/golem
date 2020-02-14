@@ -55,7 +55,63 @@ As the `pytest` export already exists, this second option is probably the most l
 - Full gap evaluation against H3. e.g. can we live without the `hopPath`, etc. See internal ticket covering gaps.
 - Scale tests, e.g. can we run our frequent crawl stream through this?
 - Use `driver.save_screenshot` etc. and POST to `warcprox` like `webrender-puppeteer` does.
-- Work out how to integrate with ideas like [ukwa/glean](https://github.com/ukwa/glean), which is an experiment in harvesting data from the archived web.  Can we meaningfully bring post-crawl patch/extract and crawl-time capture together, or are they better apart?
+- Work out how to integrate with ideas like [ukwa/glean](https://github.com/ukwa/glean), which is an experiment in harvesting data from the archived web.  Can we meaningfully bring post-crawl patch/extract and crawl-time capture together, or are they better apart? (see 'unified patch crawling' below)
+- Document Harvesting with Scrapy (collection side)
+    - Custom scraper for www.gov.uk publications.
+    - Generic scraper.
+    - [Portia](https://github.com/scrapinghub/portia) setup for future scrapers?
+- Automated QA and pre/post crawl render services 
+    - Integrate with Memento Tracer?
+    - Against pywb in patch mode? To integrate the crawling activity?
+
+## Unified Patch Crawling
+
+One idea would be to extend `warcprox` or `pywb` to support a time-aware patch mode. The crawlers could be adapted to send an `Accept-Datetime` header, which the proxy would then look-up in the OutbackCDX. If we already have copy of that URL on or after the requested date, the proxy returns that. Otherwise, the proxy reaches out to the live web and downloads from there, storing the result in a WARC and posting the outcome to OutbackCDX.
+
+By having a target timestamp for a crawl of a given resource, we can more easily run multiple crawlers together. Each could run, and each would add requests for URLs the others missed, but re-use the resources that had already been successfully downloaded rather than always hitting the remote site.
+
+Like the `launchTimestamp` in our current continuous crawler, we would have to extend the crawler(s) to include and propagate this timestamp as necessary.
+
+The main problem is that we can't reliably add a header from Selenium (or even puppeteer) crawlers. If that remains the case, it's not clear what the semantics of 'no Accept-Datetime header' should be: capture or playback?
+
+Perhaps multiple proxies could be used, one defaults to playback, the other to capture? i.e. when we're running crawl renderers it goes through the 'capture-by-default' proxy, but remaining requests go through a 'playback-by-default' service?
+
+Or maybe `capture-by-default` is fine because for all normal crawlers we can always add the `Accept-Datetime` header?
+
+### Scrapy-only approach
+
+Within Scrapy, we could mostly implement this by adding the 'accept-timestamp' as a `meta` field, and writing a suitable middleware module that checks if at item is already downloaded and returns that instead of using the normal downloader.  This would allow us to explore the issues without having to build/extend the existing tools.
+
+
+## Heritrix Alternative?
+
+Currently we are only considering Scrapy as an additional crawler for sites that present particular problems to our main Heritrix3 crawler.  That said, it's interesting to consider what it would take to move all crawling to a Scrapy-behind-warcprox model.
+
+The core crawling functionality of Scrapy is great:
+
+- It’s in Python, so is easier for the in-house team to support.
+- it’s better suited to the integration required for behind-paywall access 
+- it’s focussed on scraping so would be a good fit for the Document Harvester use case
+- it has support for a fairly scalable QT-based renderer: https://github.com/scrapinghub/splash/
+- it has support for less-scalable but still handy Selenium-based rendering.
+- Although not an official module, there is a solution for Prometheus integration (https://github.com/sashgorokhov/scrapy_prometheus)
+- There is `scrapyd` for managing many crawlers.
+- has a large community, lots of online support etc. That community may be interested in the archival tooling too!
+- we can get third-party support if we need it (ScrapingHub and others)
+
+But there are some known gaps:
+
+- virus scanning will need to become a post-processing task in warcprox (via it's plugins).
+- may be difficult to implement scoping precisely as Heritrix3 does it.
+    - e.g. no hop-path concept - that would have to be added if needed.
+    - Not clear how to do quotas.
+- may be difficult to implement extraction like H3 does it:
+    - Scrapy crawlers are often written in quite a specific way per host, e.g. SitemapCrawler. We would want a more dynamically mouldable ('clay') crawler that is content-type aware and parameterised from outside for each crawl target.
+    - We also need it to extract ALL links, rather than the current focus on e.g. `a href`.
+    - Sitemap extraction would need to intercept robots.txt downloads.
+    - The caching would need to be understood, e.g. robots.txt refreshed every 24 hrs?
+- would need to set up crawl-log entries as scraped Items and keep the log
+- we’ll be alone among our web-archiving peers as AFAIK everyone else uses Heritrix3 or Brozzler.
 
 
 ## Example of SIDE output
