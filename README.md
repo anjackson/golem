@@ -107,9 +107,10 @@ The core crawling functionality of Scrapy is great:
 - it’s focussed on scraping so would be a good fit for the Document Harvester use case
 - it has support for a fairly scalable QT-based renderer: https://github.com/scrapinghub/splash/
 - it has support for less-scalable but still handy Selenium-based rendering.
-- Although not an official module, there is a solution for Prometheus integration (https://github.com/sashgorokhov/scrapy_prometheus)
+- Although not official modules, there is a solution for Prometheus integration (https://github.com/sashgorokhov/scrapy_prometheus) and one for Kafka integration [scrapy-kafka-export](https://github.com/TeamHG-Memex/scrapy-kafka-export)
 - There is `scrapyd` for managing many crawlers.
-- has a large community, lots of online support etc. That community may be interested in the archival tooling too!
+- There is also [`Frontera`](https://github.com/scrapinghub/frontera) which support large-scale crawler systems (and which I managed to get [basically working before](https://github.com/anjackson/anjackson.github.io/blob/d2e33c37d81cb10f8a921f6637a5090a2a625348/digipres-lessons-learned/index.md#experimenting-with-frontera)).
+- has a large community, lots of online support, [good docs](https://docs.scrapy.org/en/latest/index.html) etc. That community may be interested in the archival tooling too!
 - we can get third-party support if we need it (ScrapingHub and others)
 
 But there are some known gaps:
