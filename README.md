@@ -72,15 +72,28 @@ By having a target timestamp for a crawl of a given resource, we can more easily
 
 Like the `launchTimestamp` in our current continuous crawler, we would have to extend the crawler(s) to include and propagate this timestamp as necessary.
 
-The main problem is that we can't reliably add a header from Selenium (or even puppeteer) crawlers. If that remains the case, it's not clear what the semantics of 'no Accept-Datetime header' should be: capture or playback?
+If warcprox or pywb cannot be easily modified to work this way, adding a custom `mitmproxy` app to the chain [like this one](https://github.com/mitmproxy/mitmproxy/blob/master/examples/complex/change_upstream_proxy.py) would allow us to query the CDX and then decide which upstream proxy to use.
 
-Perhaps multiple proxies could be used, one defaults to playback, the other to capture? i.e. when we're running crawl renderers it goes through the 'capture-by-default' proxy, but remaining requests go through a 'playback-by-default' service?
+### Scrapy-only Unified Patch Crawling
+
+Within Scrapy, we could mostly implement this by adding the 'accept-timestamp' as a `meta` field, and writing a suitable middleware module that checks if at item is already downloaded and returns that instead of using the normal downloader.  This would allow us to explore the issues without having to build/extend the existing tools.
+
+
+### Limitations
+
+The main problem is that we can't reliably add a header from Selenium crawlers (or even Puppeteer when it comes to Service Workers). If that remains the case, it's not clear what the semantics of 'no Accept-Datetime header' should be: capture or playback?
+
+Perhaps multiple proxies could be used, one defaults to playback, the other to capture? i.e. when we're running crawl renderers it goes through the 'capture-by-default' proxy, but remaining requests go through a 'playback-by-default' service? 
 
 Or maybe `capture-by-default` is fine because for all normal crawlers we can always add the `Accept-Datetime` header?
 
-### Scrapy-only approach
+One possibility is that we could add an intermediary proxy that did some clever stuff with virtual hosts. e.g. if the proxy is set to e.g.:
 
-Within Scrapy, we could mostly implement this by adding the 'accept-timestamp' as a `meta` field, and writing a suitable middleware module that checks if at item is already downloaded and returns that instead of using the normal downloader.  This would allow us to explore the issues without having to build/extend the existing tools.
+    proxy-npld-20200101120000.api.wa.bl.uk # Mark as NPLD, set Accept-Datetime: ~2020-01-01T12:00:00.000Z
+    proxy-npcl-record.api.wa.bl.uk         # Mark as NPLD, force all activity to be recorded.
+    proxy-replay.api.wa.bl.uk              # Force only-replay (no recording).
+
+This could be turned into a call to an upstream instance of `warcprox`/`pywb` with the appropriate NPLD and `Accept-Datetime` headers set. As indicated above, this could likely be implemented as a `mitmproxy` app, or if the upstream can handle the CDX-lookup part, perhaps just using NGINX.
 
 
 ## Heritrix Alternative?
