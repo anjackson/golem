@@ -1,5 +1,5 @@
-# golem
-Experimental crawler using Scrapy and Selenium
+# Golem^1
+Experimental crawler using Scrapy and Selenium.
 
 **NOTE: Highly likely to not work or change unexpectedly!!!**
 
@@ -175,3 +175,6 @@ class TestDefaultSuite():
       condition = self.driver.execute_script("return (arguments[0] > 0)", self.vars["toclose"])
   
 ```
+
+
+[^1]: https://en.wikipedia.org/wiki/Golems_(Discworld)
