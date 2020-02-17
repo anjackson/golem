@@ -1,4 +1,4 @@
-# Golem<sup>[1](#golem-link)</sup>
+# Golem<sup>[*](#golem-link)</sup>
 Experimental crawler using Scrapy and Selenium.
 
 **NOTE: Highly likely to not work or change unexpectedly!!!**
@@ -178,4 +178,4 @@ class TestDefaultSuite():
 
 ----
 
-<a name="golem-link">1</a>: https://en.wikipedia.org/wiki/Golems_(Discworld)
+<a name="golem-link">*</a>: https://en.wikipedia.org/wiki/Golems_(Discworld)
