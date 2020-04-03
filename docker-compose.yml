@@ -21,8 +21,8 @@ services:
       - hub
 
   warcprox:
-    #image: ukwa/warcprox:2.3.1
-    image: warcprox
+    image: ukwa/warcprox:2.3.1
+    #image: warcprox
     #command: "warcprox -b 0.0.0.0 -d /heritrix/wren --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet --plugin warcprox-plugins.listeners.KafkaCaptureFeed --plugin warcprox-plugins.listeners.UpdateOutbackCDX"
     command: "warcprox -b 0.0.0.0 -d /output --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet --plugin warcprox-plugins.listeners.UpdateOutbackCDX"
     environment:
