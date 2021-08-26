@@ -10,7 +10,6 @@ from scrapy.exceptions import DontCloseSpider
 class CrawlTestSiteSpider(scrapy.Spider):
     name = 'crawl-test-site'
 #    allowed_domains = ['crawl-test-site.webarchive.org.uk']
-#    start_urls = ['http://crawl-test-site.webarchive.org.uk/']
     allowed_domains = ['data.webarchive.org.uk']
 
     def __init__(self, *args, **kwargs):

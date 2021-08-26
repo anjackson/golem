@@ -12,7 +12,7 @@ MIDDLEWARES.extend([
     'frontera.contrib.middlewares.fingerprint.DomainFingerprintMiddleware'
 ])
 
-LOCAL_MODE = False
+LOCAL_MODE = True
 
 #--------------------------------------------------------
 # Crawl frontier backend
@@ -20,13 +20,13 @@ LOCAL_MODE = False
 QUEUE_HOSTNAME_PARTITIONING = True
 URL_FINGERPRINT_FUNCTION='frontera.utils.fingerprint.hostname_local_fingerprint'
 
-MESSAGE_BUS='frontera.contrib.messagebus.kafkabus.MessageBus'
-KAFKA_LOCATION = 'kafka:9092'
-KAFKA_GET_TIMEOUT = 5.0
+#MESSAGE_BUS='frontera.contrib.messagebus.kafkabus.MessageBus'
+#KAFKA_LOCATION = 'kafka:9092'
+#KAFKA_GET_TIMEOUT = 5.0
 #SCORING_GROUP = 'scrapy-scoring'
 #SCORING_TOPIC = 'frontier-score'
 
 #MESSAGE_BUS_CODEC='frontera.contrib.backends.remote.codecs.json'
-MESSAGE_BUS_CODEC='huntsman.codecs.yaml'
+#MESSAGE_BUS_CODEC='huntsman.codecs.yaml'
 
 #STRATEGY='frontera.strategy.depth.BreadthFirstCrawlingStrategy'

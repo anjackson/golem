@@ -16,7 +16,7 @@ NEWSPIDER_MODULE = 'huntsman.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'huntsman (+http://www.yourdomain.com)'
+USER_AGENT = 'huntsman (+http://anjackson.net)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -94,14 +94,20 @@ FRONTERA_SETTINGS = 'huntsman.config.spider'  # module path to your Frontera spi
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
 
 SPIDER_MIDDLEWARES = {
-    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999,
-    'scrapy.spidermiddleware.depth.DepthMiddleware': None,
-    'scrapy.spidermiddleware.offsite.OffsiteMiddleware': None,
-    'scrapy.spidermiddleware.referer.RefererMiddleware': None,
-    'scrapy.spidermiddleware.urllength.UrlLengthMiddleware': None
+    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
 }
 
 DOWNLOADER_MIDDLEWARES = {
-    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999,
+    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 1000,
 }
+
+# See https://frontera.readthedocs.io/en/v0.8.0.1/topics/scrapy-integration.html#configuration-guidelines
+
+HTTPCACHE_ENABLED = False   # Turns off disk cache, which has low hit ratio during broad crawls
+REDIRECT_ENABLED = True
+COOKIES_ENABLED = False
+DOWNLOAD_TIMEOUT = 120
+RETRY_ENABLED = False   # Retries can be handled by Frontera itself, depending on crawling strategy
+DOWNLOAD_MAXSIZE = 10 * 1024 * 1024  # Maximum document size, causes OOM kills if not set
+LOGSTATS_INTERVAL = 10  # Print stats every 10 secs to console
 
