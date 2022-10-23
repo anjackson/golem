@@ -1,0 +1,10 @@
+proxy:
+  coll: warchiver
+  recording: true
+
+recorder:
+   source_coll: live
+   rollover_size: 100000000
+   rollover_idle_secs: 600
+   filename_template: GOLEM-{timestamp}-{hostname}-{random}.warc.gz
+   enable_put_custom_record: true

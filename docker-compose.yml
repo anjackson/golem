@@ -1,30 +1,22 @@
 version: "3"
 
 services:
-  hub:
-    image: selenium/hub:3.141.59-zinc
-    ports:
-      - 4444:4444
-    environment:
-      - GRID_DEBUG=true
 
-  chrome:
-    image: selenium/node-chrome:3.141.59-zinc
-    environment:
-      - HUB_HOST=hub
-      - HUB_PORT=4444
-      - HTTP_PROXY=http://warcprox:8000/
-      - HTTPS_PROXY=http://warcprox:8000/
+  pywb-warcprox:
+    image: webrecorder/pywb:2.6.8
+    command: /start-pywb.sh
+    ports:
+      - "8080:8080"
     volumes:
-      - /dev/shm:/dev/shm
-    depends_on:
-      - hub
+      - ./pywb-warcprox:/webarchive/collections
+      - ./pywb-config.yml:/webarchive/config.yaml
+      - ./start-pywb.sh:/start-pywb.sh
 
   warcprox:
-    image: ukwa/warcprox:2.3.1
-    #image: warcprox
+    image: ukwa/docker-warcprox:2.4.17.2
     #command: "warcprox -b 0.0.0.0 -d /heritrix/wren --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet --plugin warcprox-plugins.listeners.KafkaCaptureFeed --plugin warcprox-plugins.listeners.UpdateOutbackCDX"
-    command: "warcprox -b 0.0.0.0 -d /output --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet --plugin warcprox-plugins.listeners.UpdateOutbackCDX"
+    #command: "warcprox -b 0.0.0.0 -d /output --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet --plugin warcprox-plugins.listeners.UpdateOutbackCDX"
+    command: "warcprox -b 0.0.0.0 -d /output --base32 --gzip --rollover-idle-time 600 --dedup-db-file /dev/null --stats-db-file /dev/null --quiet"
     environment:
       - "LC_ALL=en_US.utf8"
       - "TMP=/tmp/warcprox"

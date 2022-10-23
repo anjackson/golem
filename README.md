@@ -176,6 +176,20 @@ class TestDefaultSuite():
   
 ```
 
+
+## Notes on Scrapy via an archiving proxy:
+
+This works...
+
+```bash
+$ docker compose up -d pywb-warcprox
+$ https_proxy=http://localhost:8080 https_proxy=http://localhost:8080 scrapy crawl warchiver -a seeds=test-seeds.txt 
+```
+
+BUT note that DNS failures don't report as such, just as `400 Client Error: Bad Request for url` from PyWB and `504 Gateway Timeout` from warcprox.
+
+
+
 ----
 
 <a name="golem-link">*</a>: https://en.wikipedia.org/wiki/Golems_(Discworld)
