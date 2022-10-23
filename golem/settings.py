@@ -16,7 +16,7 @@ NEWSPIDER_MODULE = 'golem.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'golem (+http://www.yourdomain.com)'
+USER_AGENT = 'golem (+https://anjackson.net/)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -91,7 +91,7 @@ ROBOTSTXT_OBEY = True
 
 
 # Settings for using Selenium Hub:
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+#from selenium.webdriver.common.desired_capabilities import DesiredCapabilit±ies
 import os
 
 # Default for local grid with docker-compose:
@@ -99,11 +99,11 @@ SELENIUM_GRID_URL = os.environ.get('SELENIUM_GRID_URL', 'http://localhost:4444/w
 # Number of nodes (browsers) you are running on your grid:
 SELENIUM_NODES = int(os.environ.get('SELENIUM_NODES', 1))
 # Require Chrome
-SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME
-SELENIUM_CAPABILITIES['acceptInsecureCerts'] = True
+#SELENIUM_CAPABILITIES = DesiredCapabilities.CHROME
+#SELENIUM_CAPABILITIES['acceptInsecureCerts'] = True
 
 # You need also to change the default download handlers, like so:
 DOWNLOAD_HANDLERS = {
-    "http": "scrapy_headless.HeadlessDownloadHandler",
-    "https": "scrapy_headless.HeadlessDownloadHandler",
+#    "http": "scrapy_headless.HeadlessDownloadHandler",
+#    "https": "scrapy_headless.HeadlessDownloadHandler",
 }

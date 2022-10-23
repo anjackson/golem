@@ -1,0 +1,6 @@
+http://anjackson.net/
+https://non-this-dont.existy/
+http://anjackson.net/dont.existy
+https://crawler-test.com/robots_protocol/robots_excluded_1/bar/baz
+https://avatars3.githubusercontent.com/u/87843?s=460
+http://data.webarchive.org.uk/crawl-test-site/resources/documents/lorem-ipsum.odt

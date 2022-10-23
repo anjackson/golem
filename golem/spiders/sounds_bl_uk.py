@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import time
 import scrapy
-from scrapy_headless import HeadlessRequest
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+#from scrapy_headless import HeadlessRequest
+#from selenium.webdriver.common.by import By
+#from selenium.webdriver.support.ui import WebDriverWait
+#from selenium.webdriver.support import expected_conditions as EC
 
 class SoundsBlUkSpider(scrapy.Spider):
     name = 'sounds.bl.uk'
@@ -20,10 +20,11 @@ class SoundsBlUkSpider(scrapy.Spider):
     ]
 
     def start_requests(self):
-        for url in self.start_urls:
-            yield HeadlessRequest(url=url, 
-                callback=self.parse,
-                driver_callback=self.run_macros)
+        pass
+        #for url in self.start_urls:
+        #    yield HeadlessRequest(url=url, 
+        #        callback=self.parse,
+        #        driver_callback=self.run_macros)
 
     def parse(self, response):
         print("RESPONSE")
