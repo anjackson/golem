@@ -29,7 +29,8 @@
             if ( l.length > 0 ) {
                 for ( var e of l ) {
                     e.click();
-                    await sleep(1000);
+                    // Nice big gap to try and make sure the audio gets to start playing...
+                    await sleep(10*1000);
                 }
             } else {
                 break;

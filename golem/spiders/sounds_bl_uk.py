@@ -9,6 +9,7 @@ class SoundsBlUkSpider(scrapy.Spider):
 
     # Include domain sounds files get served from:
     allowed_domains = ['sounds.bl.uk', '194.66.233.31']
+
     # Just use the hopepage as a seed:
     start_urls = [
 #        'http://sounds.bl.uk/',
@@ -16,15 +17,14 @@ class SoundsBlUkSpider(scrapy.Spider):
         'https://sounds.bl.uk/Arts-literature-and-performance/Theatre-Archive-Project'
         #'http://sounds.bl.uk/Sound-recording-history/Equipment'
     ]
-
     
-
+    # Ensure seeds are run through the Playwright browser engine:
     def start_requests(self):
-        # Load userscript
+        # Load userscript to run widgets:
         path = Path(__file__).parent / "..//userscripts/sounds-bl.uk.user.js"
         with path.open() as f:
             userscript = f.read()
-        # Launch
+        # Launch the seed URLs:
         for url in self.start_urls:
             yield scrapy.Request(
                 url=url,
@@ -44,6 +44,7 @@ class SoundsBlUkSpider(scrapy.Spider):
             #yield response.follow(href, self.parse)
 
     custom_settings = {
+        "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
         "DOWNLOAD_HANDLERS": {
             "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
             "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
