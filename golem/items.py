@@ -18,6 +18,7 @@ class CrawlLogItem(scrapy.Item):
     # The 4th column is the URI of the document downloaded. 
     url = scrapy.Field()
     # The 5th column holds breadcrumb codes showing the trail of downloads that got us to the current URI. See Discovery path for description of possible code values. 
+    hop_path = scrapy.Field()
     # The 6th column holds the URI that immediately referenced this URI ('referrer'). Both of the latter two fields -- the discovery path and the referrer URL -- will be empty for such as the seed URIs.
     # The 7th holds the document mime type, 
     ct = scrapy.Field()
