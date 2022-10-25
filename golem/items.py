@@ -5,8 +5,8 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/items.html
 
+import json
 import scrapy
-
 
 class CrawlLogItem(scrapy.Item):
     # The 1st column is a timestamp in ISO8601 format, to millisecond resolution. The time is the instant of logging. 
@@ -24,7 +24,14 @@ class CrawlLogItem(scrapy.Item):
     ct = scrapy.Field()
     # the 8th column has the id of the worker thread that downloaded this document, 
     # the 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
-    # The 10th field is a SHA1 digest of the content only (headers are not digested). The 11th column is the 'source tag' inherited by this URI, if that feature is enabled. 
+    # The 10th field is a SHA1 digest of the content only (headers are not digested). 
+    # The 11th column is the 'source tag' inherited by this URI, if that feature is enabled. 
     # Finally, the 12th column holds “annotations”, if any have been set. Possible annontations include: the number of times the URI was tried (This field is '-' if the download was never retried); the literal lenTrunc if the download was truncated because it exceeded configured limits; timeTrunc if the download was truncated because the download time exceeded configured limits; or midFetchTrunc if a midfetch filter determined the download should be truncated.
+
+    def to_h3_log(self):
+        return f"{self['ts']} {self['sc']} {self['url']} {self['hop_path']} - {self['ct']} - - - - -"
+
+    def to_jsonl(self):
+        return json.dumps(dict(self))
 
 

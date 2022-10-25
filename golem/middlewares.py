@@ -5,12 +5,11 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-import os
-import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timezone
 
+import scrapy
 from scrapy import signals
 from scrapy import Request
 from scrapy.http import Response, TextResponse
@@ -41,7 +40,9 @@ def err_to_item(request: Request, exception, datetime=datetime.now(timezone.utc)
             log['sc'] = -2
         elif isinstance(exception, DNSLookupError):
             log['sc'] = -1
-        elif isinstance(exception, TimeoutError):#, TCPTimedOutError):
+        elif isinstance(exception, TimeoutError):
+            log['sc'] = -4
+        elif isinstance(exception, TCPTimedOutError):
             log['sc'] = -4
         elif isinstance(exception, IgnoreRequest):
             log['sc'] = -9998
@@ -181,15 +182,36 @@ class GolemDownloaderMiddleware(object):
 
 from enum import Enum
 
+# Hops that can make up a discovery path (or hop_path)
+# https://heritrix.readthedocs.io/en/latest/glossary.html
 class Hop(Enum):
+    # Link (normal navigation links like <a href=...>)
     Link = 'L'
+    # Redirect
     Redirect = 'R'
+    # Embedded links necessary to render the page (such as <img src=...>)
     Embed = 'E'
+    # Speculative embed (aggressive JavaScript link extraction)
     Speculative = 'X'
+    # Prerequisite (such as DNS lookup or robots.txt)
     Prerequisite = 'P'
+    #  Inferred/implied links. Not necessarily in the source material, but deduced by convention (such as /favicon.ico)
+    Inferred = 'I'
+    # Manifest (such as links discovered from a sitemap file)
+    Manifest = 'M'
+    # Synthesized form-submit
+    Synthesized = 'S'
 
 
 class HopPathSpiderMiddleware(object):
+    """
+    Each URI has a discovery path. The path contains one character for each link or embed followed
+    from the seed, for example “LLLE” might be an image on a page that’s 3 links away from a seed.
+    
+    The discovery path of a seed is an empty string.
+
+    See <https://heritrix.readthedocs.io/en/latest/glossary.html>
+    """
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -200,9 +222,9 @@ class HopPathSpiderMiddleware(object):
         # FIXME Warn that redirects won't be logged if REDIRECT_ENABLED=True
         return s
 
-    def process_spider_output(self, response, result, spider):
+    def process_spider_output(self, response, result, spider: scrapy.Spider):
         # Follow redirects:
-        if 'location' in response.headers:
+        if 'location_ORF' in response.headers:
             yield self._update_hop_path(
                 Request(
                 url=response.headers['Location'].decode('utf-8'),
@@ -212,6 +234,10 @@ class HopPathSpiderMiddleware(object):
         # And update hops for output from spider:
         for i in result:
             yield self._update_hop_path(i)
+
+        # As a test, try scheduling from here:
+        #req = Request(url="https://anjackson.net/favicon.ico", meta={'hop': Hop.Inferred.value})
+        #spider.crawler.engine.crawl(self._update_hop_path(req), spider)
 
     def _update_hop_path(self, r):
         # Update the hop_path based on the 'hop', defaulting to 'L'
@@ -239,7 +265,7 @@ class CrawlLogDownloaderMiddleware(object):
 
     crawl_log = logging.getLogger('CrawlLogDownloaderMiddleware')
 
-    fh = TimedRotatingFileHandler('crawl.jsonl', when='midnight', encoding='utf-8', delay=True, utc=True)
+    fh = TimedRotatingFileHandler('crawl.log', when='midnight', encoding='utf-8', delay=True, utc=True)
     fh.setFormatter(logging.Formatter('%(message)s'))
     fh.setLevel(logging.INFO)
     fh.doRollover()
@@ -274,7 +300,7 @@ class CrawlLogDownloaderMiddleware(object):
         # - return a Request object
         # - or raise IgnoreRequest
         spider.logger.info('process_response: %s' % spider)
-        self.crawl_log.info(json.dumps(dict(to_item(request,response))))
+        self.crawl_log.info(to_item(request,response).to_h3_log())
         return response
 
     def process_exception(self, request, exception, spider):
@@ -286,7 +312,7 @@ class CrawlLogDownloaderMiddleware(object):
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
         spider.logger.info('process_exception: %s' % spider)
-        self.crawl_log.info(json.dumps(dict(err_to_item(request,exception))))
+        self.crawl_log.info(err_to_item(request,exception).to_h3_log())
         pass
 
     def spider_opened(self, spider):

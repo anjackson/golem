@@ -40,14 +40,15 @@ class WarchiverSpider(scrapy.Spider):
 
     custom_settings = {
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
-        "REDIRECT_ENABLED": False,
-        "HTTPERROR_ALLOW_ALL": True, # Make this crawler process of all outcomes.
+        "REDIRECT_ENABLED": True,
+        "HTTPERROR_ALLOW_ALL": True, # Make this spider process all outcomes.
         "FEEDS": {
             "items.jsonl":{
                 "format": "jsonl"
             }
         },
         "SPIDER_MIDDLEWARES": {
+            # Install this so that the hop path from the seed is tracked:
             'golem.middlewares.HopPathSpiderMiddleware': 5,
         },
         "DOWNLOADER_MIDDLEWARES": {
