@@ -49,14 +49,14 @@ class WarchiverSpider(scrapy.Spider):
             }
         },
         "SPIDER_MIDDLEWARES": {
-            # Install this so that the hop path from the seed is tracked:
+            # Install this so that the hop path from the seed can be tracked:
             'golem.middleware.hop_path.HopPathSpiderMiddleware': 1,
             'golem.middleware.well_known.WellKnownURISpiderMiddleware': 5,
         },
         "DOWNLOADER_MIDDLEWARES": {
             # Install at the end so all downloads e.g. redirects, or robots.txt can be observed.
             'golem.middleware.crawl_log.CrawlLogDownloaderMiddleware': 999998,
-            # But the hop path middleware needs to be right at the end to fix that up:
+            # Put hop path middleware at the end so that gets updated first on response:
             'golem.middleware.hop_path.HopPathDownloaderMiddleware':   999999
         },
         #"LOG_LEVEL": "INFO",

@@ -54,6 +54,7 @@ class HopPathSpiderMiddleware(object):
         # FIXME Warn that redirects won't be logged if REDIRECT_ENABLED=True
         return s
 
+    # Copy the hop_path into the results so it can get updated later:
     def process_spider_output(self, response, result, spider: scrapy.Spider):
         # Follow redirects:
         if 'location_ORF' in response.headers:
@@ -69,9 +70,8 @@ class HopPathSpiderMiddleware(object):
             #    i.meta['hop'] = Hop.Redirect.value
             #yield self._update_hop_path(i)
             # Copy hop path so downloader can update it:
-            spider.logger.warn("PROPAGATE")
             i.meta['hop_path'] = response.meta.get('hop_path', '')
-            spider.logger.warn(i.meta['hop_path'])
+            i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
             yield i
 
     def _update_hop_path(self, r):
@@ -118,7 +118,7 @@ class HopPathDownloaderMiddleware(object):
 
         # Must either;
         # - return a Response object
-        # - return a Request object < ANJ This is what Redirector uses
+        # - return a Request object
         # - or raise IgnoreRequest
         spider.logger.info('process_response: %s' % spider.name)
         # Update the hop_path based on the 'hop', defaulting to 'L'

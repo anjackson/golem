@@ -41,22 +41,22 @@ class WellKnownURISpiderMiddleware(object):
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
-    def process_spider_input(self, response: Response, spider):
+    def process_spider_output(self, response, result, spider: scrapy.Spider):
         # If the URL is a home page, generate variations for this home page:
         url = urlparse(response.url,allow_fragments=False)
         if url.path == '/':
             spider.logger.debug(f"Homepage {url} crawled, so enqueing well-known URIs.")
             for wku in DEFAULT_WELL_KNOWN_URIS:
                 # FIXME should this clone-and-replace?
-                req = Request(
+                yield Request(
                     url=urlunparse(url._replace(path=wku)), 
                     meta={
                         'hop': Hop.Inferred.value,
-                        #'hop_path': response.meta.get('hop_path', ''),
                         })
-                spider.crawler.engine.crawl(req)
 
-        return None
+        # And output the rest of the results from the spider
+        for i in result:
+            yield i
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
