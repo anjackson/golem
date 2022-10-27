@@ -69,9 +69,10 @@ class HopPathSpiderMiddleware(object):
             #if i.meta.get('redirect_times', 0) > 0:
             #    i.meta['hop'] = Hop.Redirect.value
             #yield self._update_hop_path(i)
-            # Copy hop path so downloader can update it:
-            i.meta['hop_path'] = response.meta.get('hop_path', '')
-            i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
+            if isinstance(i, scrapy.Request):
+                # Copy hop path so downloader can update it:
+                i.meta['hop_path'] = response.meta.get('hop_path', '')
+                i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
             yield i
 
     def _update_hop_path(self, r):
@@ -99,20 +100,6 @@ class HopPathDownloaderMiddleware(object):
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
-    def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
-
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
-        spider.logger.info('process_request: %s' % spider.name)
-        spider.logger.info('process_request: %s' % request.url)
-        return None
-
     def process_response(self, request, response, spider):
         # Called with the response returned from the downloader.
 
@@ -120,7 +107,7 @@ class HopPathDownloaderMiddleware(object):
         # - return a Response object
         # - return a Request object
         # - or raise IgnoreRequest
-        spider.logger.info('process_response: %s' % spider.name)
+
         # Update the hop_path based on the 'hop', defaulting to 'L'
         if 'hop_path' not in request.meta:
             request.meta['hop_path'] = ''
@@ -131,18 +118,6 @@ class HopPathDownloaderMiddleware(object):
             request.meta['hop_path'] = request.meta['hop_path'] + hop
 
         return response
-
-    def process_exception(self, request, exception, spider):
-        # Called when a download handler or a process_request()
-        # (from other downloader middleware) raises an exception.
-
-        # Must either:
-        # - return None: continue processing this exception
-        # - return a Response object: stops process_exception() chain
-        # - return a Request object: stops process_exception() chain
-        spider.logger.info('process_exception: %s' % spider.name)
-        spider.logger.info('process_exception: %s' % request.url)
-        pass
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)

@@ -95,14 +95,6 @@ class CrawlLogItemSpiderMiddleware(object):
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
-    def process_spider_input(self, response, spider):
-        # Called for each response that goes through the spider
-        # middleware and into the spider.
-
-        # Should return None or raise an exception.
-        spider.logger.info('process_spider_input: %s' % spider.name)
-        return None
-
     def process_spider_output(self, response, result, spider):
         # Called with the results returned from the Spider, after
         # it has processed the response.
@@ -122,16 +114,6 @@ class CrawlLogItemSpiderMiddleware(object):
         spider.logger.info('process_spider_exception: %s' % spider.name)
         yield to_item(response.request, exception)
         pass
-
-    def process_start_requests(self, start_requests, spider):
-        # Called with the start requests of the spider, and works
-        # similarly to the process_spider_output() method, except
-        # that it doesn’t have a response associated.
-
-        # Must return only requests (not items).
-        spider.logger.info('process_start_requests: %s' % spider.name)
-        for r in start_requests:
-            yield r
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
@@ -158,19 +140,6 @@ class CrawlLogDownloaderMiddleware(object):
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
-    def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
-
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
-        spider.logger.info('process_request: %s' % spider.name)
-        return None
-
     def process_response(self, request, response, spider):
         # Called with the response returned from the downloader.
 
@@ -178,7 +147,6 @@ class CrawlLogDownloaderMiddleware(object):
         # - return a Response object
         # - return a Request object
         # - or raise IgnoreRequest
-        spider.logger.info('process_response: %s' % spider)
         self.crawl_log.info(to_item(request,response).to_h3_log())
         return response
 
@@ -190,7 +158,6 @@ class CrawlLogDownloaderMiddleware(object):
         # - return None: continue processing this exception
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
-        spider.logger.info('process_exception: %s' % spider)
         self.crawl_log.info(err_to_item(request,exception).to_h3_log())
         pass
 

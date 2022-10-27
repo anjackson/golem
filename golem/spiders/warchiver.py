@@ -41,22 +41,25 @@ class WarchiverSpider(scrapy.Spider):
     custom_settings = {
         "DOWNLOAD_DELAY": 2.0,
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
-        "REDIRECT_ENABLED": True,
-        "HTTPERROR_ALLOW_ALL": True, # Make this spider process all outcomes.
+        "REDIRECT_ENABLED": True, # Let the Scrapy downloader middleware handle redirects
+        "HTTPERROR_ALLOW_ALL": False, # Make this spider process all outcomes (404s etc.).
         "FEEDS": {
             "items.jsonl":{
                 "format": "jsonl"
             }
         },
         "SPIDER_MIDDLEWARES": {
-            # Install this so that the hop path from the seed can be tracked:
+            # Install this so that the hop path from the seed can be tracked, including via middleware:
             'golem.middleware.hop_path.HopPathSpiderMiddleware': 1,
+            # If a homepage gets crawled, crawl well-known URIs for that host:
             'golem.middleware.well_known.WellKnownURISpiderMiddleware': 5,
+            # Emit Crawl Log Items for each result:
+            'golem.middleware.crawl_log.CrawlLogItemSpiderMiddleware': 10,
         },
         "DOWNLOADER_MIDDLEWARES": {
-            # Install at the end so all downloads e.g. redirects, or robots.txt can be observed.
+            # Install at the end so all robots.txt/3xx/4xx/5xx can be observed:
             'golem.middleware.crawl_log.CrawlLogDownloaderMiddleware': 999998,
-            # Put hop path middleware at the end so that gets updated first on response:
+            # Put hop path middleware at the end so that gets updated first on response, before logging:
             'golem.middleware.hop_path.HopPathDownloaderMiddleware':   999999
         },
         #"LOG_LEVEL": "INFO",
