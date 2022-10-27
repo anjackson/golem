@@ -8,7 +8,7 @@
 import json
 import scrapy
 
-class CrawlLogItem(scrapy.Item):
+class GolemItem(scrapy.Item):
     # The 1st column is a timestamp in ISO8601 format, to millisecond resolution. The time is the instant of logging. 
     ts = scrapy.Field()
     # The 2nd column is the fetch status code. Usually this is the HTTP status code but it can also be a negative number if URL processing was unexpectedly terminated. See Status codes for a listing of possible values.

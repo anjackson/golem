@@ -8,7 +8,7 @@ from scrapy.downloadermiddlewares.robotstxt import IgnoreRequest
 from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError, TCPTimedOutError
 
-from golem.middlewares import Hop
+from golem.middleware.hop_path import Hop
 
 class WarchiverSpider(scrapy.Spider):
     name = 'warchiver'
@@ -39,6 +39,7 @@ class WarchiverSpider(scrapy.Spider):
                 #yield response.follow(href, self.parse)
 
     custom_settings = {
+        "DOWNLOAD_DELAY": 2.0,
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
         "REDIRECT_ENABLED": True,
         "HTTPERROR_ALLOW_ALL": True, # Make this spider process all outcomes.
@@ -49,11 +50,14 @@ class WarchiverSpider(scrapy.Spider):
         },
         "SPIDER_MIDDLEWARES": {
             # Install this so that the hop path from the seed is tracked:
-            'golem.middlewares.HopPathSpiderMiddleware': 5,
+            'golem.middleware.hop_path.HopPathSpiderMiddleware': 1,
+            'golem.middleware.well_known.WellKnownURISpiderMiddleware': 5,
         },
         "DOWNLOADER_MIDDLEWARES": {
-            # Install just after the robots.txt handler so downloads of robots.txt can be observed.
-            'golem.middlewares.CrawlLogDownloaderMiddleware': 150,
+            # Install at the end so all downloads e.g. redirects, or robots.txt can be observed.
+            'golem.middleware.crawl_log.CrawlLogDownloaderMiddleware': 999998,
+            # But the hop path middleware needs to be right at the end to fix that up:
+            'golem.middleware.hop_path.HopPathDownloaderMiddleware':   999999
         },
         #"LOG_LEVEL": "INFO",
     }

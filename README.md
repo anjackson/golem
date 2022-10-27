@@ -41,7 +41,7 @@ As a first case, it would be good to explore a UK domain scanner. Currently, we 
     - [ ] Check for all well-known URIs (e.g. `ads.txt` etc.) but do so slowly as quick 404s in succession tend to cause problems. (a DownloaderMiddleware that requests them)
 - Expected output:
     - [ ] Capture all requests-responses in WARC.
-    - [ ] H3-style crawl log: Log all URL outcomes, e.g. those that get dropped due to e.g. robots.txt exclusion.
+    - [ ] H3-style crawl log: Log all URL outcomes, e.g. those that get dropped due to e.g. robots.txt exclusion. 
 
 This would explore some of the scale issues. For example, if we just use a fairly vanilla Scrapy set up, can we scan 10 million domains quickly? Or do we need to crack out URLFrontier? Or some othe way of scaling up?
 
@@ -51,6 +51,11 @@ Use scrapy-playwright and custom scripts in a dedicated spider to archive a tric
 
 ## A frequent crawl engine
 
+ - [ ] Support crawl job specification files, following [UKWA crawl spec.](https://github.com/ukwa/python-w3act/blob/master/w3act/dbc/client.py#L430-L451) and/or [Browsertrix](https://github.com/webrecorder/browsertrix-cloud/blob/main/backend/btrixcloud/crawlconfigs.py#L49)
+ - [ ] Load/inject crawl configs from Kafka or perhaps just by [tailing a file](https://github.com/bgreenlee/pygtail#readme).
+ - [ ] Add SURT scoping, maybe from [watched files](https://github.com/samuelcolvin/watchfiles#readme)
+ - [ ] Log out-of-scope URLs getting dropped.
+ - [ ] Implement crawl quotas.
  - [ ] WARC archiving proxy must de-duplicate.
  - [ ] Continuous crawling support, refreshing seeds and sitemaps, but possible to request full re-crawls. 
  - [ ] Consider URLFrontier integration (as per [scrapy-url-frontier](https://github.com/anjackson/scrapy-url-frontier)).

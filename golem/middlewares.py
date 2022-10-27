@@ -18,42 +18,6 @@ from scrapy.downloadermiddlewares.robotstxt import IgnoreRequest
 from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError, TCPTimedOutError
 
-from golem.items import CrawlLogItem
-
-def to_item(request: Request, response: Response, datetime=datetime.now(timezone.utc)):
-        log = CrawlLogItem()
-        log['url'] = response.url
-        log['ts'] = datetime.isoformat()
-        log['sc'] = response.status
-        log['size'] = len(response.body)
-        log['ct'] = response.headers.get('content-type', b'-').decode('utf-8')
-        log['hop_path'] = request.meta.get('hop_path','')
-
-        return log
-
-def err_to_item(request: Request, exception, datetime=datetime.now(timezone.utc)):
-        log = CrawlLogItem()
-        log['url'] = request.url
-        log['ts'] = datetime.isoformat()
-        # https://heritrix.readthedocs.io/en/latest/glossary.html#status-codes
-        if isinstance(exception, HttpError):
-            log['sc'] = -2
-        elif isinstance(exception, DNSLookupError):
-            log['sc'] = -1
-        elif isinstance(exception, TimeoutError):
-            log['sc'] = -4
-        elif isinstance(exception, TCPTimedOutError):
-            log['sc'] = -4
-        elif isinstance(exception, IgnoreRequest):
-            log['sc'] = -9998
-        else:
-            raise Exception("Unknown exception type: " + exception)
-        # Other fields:
-        log['size'] = '-'
-        log['ct'] = '-'
-        log['hop_path'] = ''
-
-        return log
 
 class GolemSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
@@ -81,15 +45,6 @@ class GolemSpiderMiddleware(object):
 
         # Must return an iterable of Request, dict or Item objects.
         spider.logger.info('process_spider_output: %s' % spider.name)
-        yield to_item(response.request, response)
-        for i in result:
-            # Update the hop_path based on the 'hop', defaulting to 'L'
-            if 'hop_path' not in i.meta:
-                i.meta['hop_path'] = ''
-            hop = i.meta.get('hop', 'L')
-            i.meta['hop_path'] += hop
-            # And return:
-            yield i
 
     def process_spider_exception(self, response, exception, spider):
         # Called when a spider or process_spider_input() method
@@ -98,7 +53,6 @@ class GolemSpiderMiddleware(object):
         # Should return either None or an iterable of Request, dict
         # or Item objects.
         spider.logger.info('process_spider_exception: %s' % spider.name)
-        yield to_item(response.request, exception)
         pass
 
     def process_start_requests(self, start_requests, spider):
@@ -161,158 +115,6 @@ class GolemDownloaderMiddleware(object):
         # - return a Request object: stops process_exception() chain
         spider.logger.info('process_exception: %s' % spider.name)
         spider.logger.info('process_exception: %s' % request.url)
-        pass
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
-
-
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-
-
-from enum import Enum
-
-# Hops that can make up a discovery path (or hop_path)
-# https://heritrix.readthedocs.io/en/latest/glossary.html
-class Hop(Enum):
-    # Link (normal navigation links like <a href=...>)
-    Link = 'L'
-    # Redirect
-    Redirect = 'R'
-    # Embedded links necessary to render the page (such as <img src=...>)
-    Embed = 'E'
-    # Speculative embed (aggressive JavaScript link extraction)
-    Speculative = 'X'
-    # Prerequisite (such as DNS lookup or robots.txt)
-    Prerequisite = 'P'
-    #  Inferred/implied links. Not necessarily in the source material, but deduced by convention (such as /favicon.ico)
-    Inferred = 'I'
-    # Manifest (such as links discovered from a sitemap file)
-    Manifest = 'M'
-    # Synthesized form-submit
-    Synthesized = 'S'
-
-
-class HopPathSpiderMiddleware(object):
-    """
-    Each URI has a discovery path. The path contains one character for each link or embed followed
-    from the seed, for example “LLLE” might be an image on a page that’s 3 links away from a seed.
-    
-    The discovery path of a seed is an empty string.
-
-    See <https://heritrix.readthedocs.io/en/latest/glossary.html>
-    """
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        # FIXME Drop requests if hop path over configurable limit.
-        # FIXME Warn that redirects won't be logged if REDIRECT_ENABLED=True
-        return s
-
-    def process_spider_output(self, response, result, spider: scrapy.Spider):
-        # Follow redirects:
-        if 'location_ORF' in response.headers:
-            yield self._update_hop_path(
-                Request(
-                url=response.headers['Location'].decode('utf-8'),
-                meta={'hop': Hop.Redirect.value}
-                )
-            )
-        # And update hops for output from spider:
-        for i in result:
-            yield self._update_hop_path(i)
-
-        # As a test, try scheduling from here:
-        #req = Request(url="https://anjackson.net/favicon.ico", meta={'hop': Hop.Inferred.value})
-        #spider.crawler.engine.crawl(self._update_hop_path(req), spider)
-
-    def _update_hop_path(self, r):
-        # Update the hop_path based on the 'hop', defaulting to 'L'
-        if 'hop_path' not in r.meta:
-            r.meta['hop_path'] = ''
-        hop = r.meta.get('hop', Hop.Link.value)
-        r.meta['hop_path'] += hop
-        # And return:
-        return r
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
-
-
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------------
-
-class CrawlLogDownloaderMiddleware(object):
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the downloader middleware does not modify the
-    # passed objects.
-
-    crawl_log = logging.getLogger('CrawlLogDownloaderMiddleware')
-
-    fh = TimedRotatingFileHandler('crawl.log', when='midnight', encoding='utf-8', delay=True, utc=True)
-    fh.setFormatter(logging.Formatter('%(message)s'))
-    fh.setLevel(logging.INFO)
-    fh.doRollover()
-    crawl_log.propagate = False
-    crawl_log.addHandler(fh)
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
-
-    def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
-
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
-        spider.logger.info('process_request: %s' % spider.name)
-        return None
-
-    def process_response(self, request, response, spider):
-        # Called with the response returned from the downloader.
-
-        # Must either;
-        # - return a Response object
-        # - return a Request object
-        # - or raise IgnoreRequest
-        spider.logger.info('process_response: %s' % spider)
-        self.crawl_log.info(to_item(request,response).to_h3_log())
-        return response
-
-    def process_exception(self, request, exception, spider):
-        # Called when a download handler or a process_request()
-        # (from other downloader middleware) raises an exception.
-
-        # Must either:
-        # - return None: continue processing this exception
-        # - return a Response object: stops process_exception() chain
-        # - return a Request object: stops process_exception() chain
-        spider.logger.info('process_exception: %s' % spider)
-        self.crawl_log.info(err_to_item(request,exception).to_h3_log())
         pass
 
     def spider_opened(self, spider):
