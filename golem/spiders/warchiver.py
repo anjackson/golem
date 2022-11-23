@@ -18,6 +18,9 @@ class WarchiverSpider(scrapy.Spider):
         self.seeds = seeds
 
     def start_requests(self):
+        if self.seeds is None:
+            return
+        # Otherwise, process the seeds...
         if self.seeds.endswith('.csv'):
             reader = csv.reader(open(self.seeds),delimiter='\t')
             for row in reader:
@@ -39,6 +42,8 @@ class WarchiverSpider(scrapy.Spider):
                 #yield response.follow(href, self.parse)
 
     custom_settings = {
+        "SCHEDULER": 'urlfrontier.scheduler.URLFrontierScheduler',
+        "SCHEDULER_URLFRONTIER_ENDPOINT": '127.0.0.1:7071',
         "DOWNLOAD_DELAY": 2.0,
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
         "REDIRECT_ENABLED": True, # Let the Scrapy downloader middleware handle redirects

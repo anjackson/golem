@@ -20,28 +20,62 @@ from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError, TCPTimedOutError
 
 
+# Crawl log information, as per
+# https://github.com/internetarchive/heritrix3/blob/37ce8d694590b0cf8cbe0a38a58c5f8ee719c4f0/engine/src/main/java/org/archive/crawler/io/UriProcessingFormatter.java#L73
+# but key names aiming to be consistent with:
+# https://github.com/internetarchive/heritrix3/blob/37ce8d694590b0cf8cbe0a38a58c5f8ee719c4f0/contrib/src/main/java/org/archive/modules/postprocessor/CrawlLogJsonBuilder.java#L21
 class CrawlLogItem(scrapy.Item):
     # The 1st column is a timestamp in ISO8601 format, to millisecond resolution. The time is the instant of logging. 
-    ts = scrapy.Field()
+    timestamp = scrapy.Field()
     # The 2nd column is the fetch status code. Usually this is the HTTP status code but it can also be a negative number if URL processing was unexpectedly terminated. See Status codes for a listing of possible values.
-    sc = scrapy.Field()
+    status_code = scrapy.Field()
     # The 3rd column is the size of the downloaded document in bytes. For HTTP, Size is the size of the content-only. It excludes the size of the HTTP response headers. For DNS, its the total size of the DNS response. 
-    size = scrapy.Field()
+    content_length = scrapy.Field()
     # The 4th column is the URI of the document downloaded. 
     url = scrapy.Field()
     # The 5th column holds breadcrumb codes showing the trail of downloads that got us to the current URI. See Discovery path for description of possible code values. 
     hop_path = scrapy.Field()
     # The 6th column holds the URI that immediately referenced this URI ('referrer'). Both of the latter two fields -- the discovery path and the referrer URL -- will be empty for such as the seed URIs.
+    via = scrapy.Field()
     # The 7th holds the document mime type, 
-    ct = scrapy.Field()
+    mimetype = scrapy.Field()
     # the 8th column has the id of the worker thread that downloaded this document, 
+    thread = scrapy.Field()
     # the 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
+    start_time_plus_duration = scrapy.Field()
     # The 10th field is a SHA1 digest of the content only (headers are not digested). 
+    content_digest = scrapy.Field()
     # The 11th column is the 'source tag' inherited by this URI, if that feature is enabled. 
+    seed = scrapy.Field()
     # Finally, the 12th column holds “annotations”, if any have been set. Possible annontations include: the number of times the URI was tried (This field is '-' if the download was never retried); the literal lenTrunc if the download was truncated because it exceeded configured limits; timeTrunc if the download was truncated because the download time exceeded configured limits; or midFetchTrunc if a midfetch filter determined the download should be truncated.
+    annotations = scrapy.Field()
+
+    # ----------------------------------
+    # Additional fields not in crawl.log
+    # ----------------------------------
+
+    # The size of the response, including headers.
+    size = scrapy.Field()
+    # The host part of the URL:
+    host = scrapy.Field()
+    # A name to identify the crawl:
+    crawl_name = scrapy.Field()
+    # A dict for extra info, e.g. scopeDecision:
+    extra_info = scrapy.Field()
+
+    # WARC-related fields, but we're not writing the WARCs.
+    #warc_filename = scrapy.Field()
+    #warc_offset = scrapy.Field()
+    #warc_length = scrapy.Field()
+    #warc_content_type = scrapy.Field()
+    #warc_type = scrapy.Field()
+    #warc_id = scrapy.Field()
 
     def to_h3_log(self):
-        return f"{self['ts']} {self['sc']} {self['size']} {self['url']} {self['hop_path']} - {self['ct']} - - - - -"
+        return f"{self['timestamp']} {self['status_code']} {self['content_length']} \
+{self['url']} {self['hop_path']} {self['via']} {self['mimetype']} \
+{self['thread']} {self['start_time_plus_duration']} {self['content_digest']} \
+{self['seed']} {self['annotations']}"
 
     def to_jsonl(self):
         return json.dumps(dict(self))
@@ -50,35 +84,47 @@ class CrawlLogItem(scrapy.Item):
 def to_item(request: Request, response: Response, datetime=datetime.now(timezone.utc)):
         log = CrawlLogItem()
         log['url'] = response.url
-        log['ts'] = datetime.isoformat()
-        log['sc'] = response.status
-        log['size'] = len(response.body)
-        log['ct'] = response.headers.get('content-type', b'-').decode('utf-8')
+        log['timestamp'] = datetime.isoformat()
+        log['status_code'] = response.status
+        log['content_length'] = len(response.body)
+        log['mimetype'] = response.headers.get('content-type', b'-').decode('utf-8')
         log['hop_path'] = request.meta.get('hop_path','')
+        log['seed'] = request.meta.get('source','-')
+        log['via'] = request.headers.get('Referer',b'-').decode('utf-8')
+        log['thread'] = request.meta.get('thread','-')
+        log['start_time_plus_duration'] = request.meta.get('start_time_plus_duration','-')
+        log['content_digest'] = request.meta.get('content_digest','-')
+        log['annotations'] = request.meta.get('annotations','-')
 
         return log
 
 def err_to_item(request: Request, exception, datetime=datetime.now(timezone.utc)):
         log = CrawlLogItem()
         log['url'] = request.url
-        log['ts'] = datetime.isoformat()
+        log['timestamp'] = datetime.isoformat()
         # https://heritrix.readthedocs.io/en/latest/glossary.html#status-codes
         if isinstance(exception, HttpError):
-            log['sc'] = -2
+            log['status_code'] = -2
         elif isinstance(exception, DNSLookupError):
-            log['sc'] = -1
+            log['status_code'] = -1
         elif isinstance(exception, TimeoutError):
-            log['sc'] = -4
+            log['status_code'] = -4
         elif isinstance(exception, TCPTimedOutError):
-            log['sc'] = -4
+            log['status_code'] = -4
         elif isinstance(exception, IgnoreRequest):
-            log['sc'] = -9998
+            log['status_code'] = -9998
         else:
             raise Exception("Unknown exception type: " + exception)
         # Other fields:
-        log['size'] = '0'
-        log['ct'] = '-'
-        log['hop_path'] = ''
+        log['content_length'] = '0'
+        log['hop_path'] = '-'
+        log['mimetype'] = ''
+        log['seed'] = '-'
+        log['via'] = '-'
+        log['thread'] = '-'
+        log['start_time_plus_duration'] = '-'
+        log['content_digest'] = '-'
+        log['annotations'] = '-'
 
         return log
 
@@ -103,6 +149,12 @@ class CrawlLogItemSpiderMiddleware(object):
         spider.logger.info('process_spider_output: %s' % spider.name)
         yield to_item(response.request, response)
         for i in result:
+            if isinstance(i, scrapy.Request):
+                # Copy hop path so downloader can update it:
+                if 'source' in response.meta:
+                    i.meta['source'] = response.meta['source']
+                #i.meta['hop_path'] = response.meta.get('hop_path', '')
+                #i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
             yield i
 
     def process_spider_exception(self, response, exception, spider):
@@ -114,6 +166,14 @@ class CrawlLogItemSpiderMiddleware(object):
         spider.logger.info('process_spider_exception: %s' % spider.name)
         yield to_item(response.request, exception)
         pass
+
+    def process_start_requests(self, start_requests, spider):
+        # Set source == Seed URL if not otherwise set:
+        for r in start_requests:
+            if not 'source' in r.meta:
+                r.meta['source'] = r.url
+            yield r
+
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)

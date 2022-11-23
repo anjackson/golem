@@ -66,9 +66,6 @@ class HopPathSpiderMiddleware(object):
             )
         # And update hops for output from spider:
         for i in result:
-            #if i.meta.get('redirect_times', 0) > 0:
-            #    i.meta['hop'] = Hop.Redirect.value
-            #yield self._update_hop_path(i)
             if isinstance(i, scrapy.Request):
                 # Copy hop path so downloader can update it:
                 i.meta['hop_path'] = response.meta.get('hop_path', '')
