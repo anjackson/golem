@@ -7,6 +7,8 @@
 
 import json
 import logging
+from hashlib import sha1
+from base64 import b32encode
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timezone
 
@@ -39,15 +41,15 @@ class CrawlLogItem(scrapy.Item):
     via = scrapy.Field()
     # The 7th holds the document mime type, 
     mimetype = scrapy.Field()
-    # the 8th column has the id of the worker thread that downloaded this document, 
+    # TODO??? the 8th column has the id of the worker thread that downloaded this document, 
     thread = scrapy.Field()
-    # the 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
+    # TODO??? the 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
     start_time_plus_duration = scrapy.Field()
-    # The 10th field is a SHA1 digest of the content only (headers are not digested). 
+    # TODO The 10th field is a SHA1 digest of the content only (headers are not digested). 
     content_digest = scrapy.Field()
     # The 11th column is the 'source tag' inherited by this URI, if that feature is enabled. 
     seed = scrapy.Field()
-    # Finally, the 12th column holds “annotations”, if any have been set. Possible annontations include: the number of times the URI was tried (This field is '-' if the download was never retried); the literal lenTrunc if the download was truncated because it exceeded configured limits; timeTrunc if the download was truncated because the download time exceeded configured limits; or midFetchTrunc if a midfetch filter determined the download should be truncated.
+    # TODO Finally, the 12th column holds “annotations”, if any have been set. Possible annontations include: the number of times the URI was tried (This field is '-' if the download was never retried); the literal lenTrunc if the download was truncated because it exceeded configured limits; timeTrunc if the download was truncated because the download time exceeded configured limits; or midFetchTrunc if a midfetch filter determined the download should be truncated.
     annotations = scrapy.Field()
 
     # ----------------------------------
@@ -73,13 +75,12 @@ class CrawlLogItem(scrapy.Item):
 
     def to_h3_log(self):
         return f"{self['timestamp']} {self['status_code']} {self['content_length']} \
-{self['url']} {self['hop_path']} {self['via']} {self['mimetype']} \
+{self['url']} {self['hop_path']} {self['via']} {self['mimetype'].split(';')[0]} \
 {self['thread']} {self['start_time_plus_duration']} {self['content_digest']} \
 {self['seed']} {self['annotations']}"
 
     def to_jsonl(self):
         return json.dumps(dict(self))
-
 
 def to_item(request: Request, response: Response, datetime=datetime.now(timezone.utc)):
         log = CrawlLogItem()
@@ -90,7 +91,7 @@ def to_item(request: Request, response: Response, datetime=datetime.now(timezone
         log['mimetype'] = response.headers.get('content-type', b'-').decode('utf-8')
         log['hop_path'] = request.meta.get('hop_path','')
         log['seed'] = request.meta.get('source','-')
-        log['via'] = request.headers.get('Referer',b'-').decode('utf-8')
+        log['via'] = request.meta.get('via','-')
         log['thread'] = request.meta.get('thread','-')
         log['start_time_plus_duration'] = request.meta.get('start_time_plus_duration','-')
         log['content_digest'] = request.meta.get('content_digest','-')
@@ -117,28 +118,27 @@ def err_to_item(request: Request, exception, datetime=datetime.now(timezone.utc)
             raise Exception("Unknown exception type: " + exception)
         # Other fields:
         log['content_length'] = '0'
-        log['hop_path'] = '-'
-        log['mimetype'] = ''
-        log['seed'] = '-'
-        log['via'] = '-'
-        log['thread'] = '-'
-        log['start_time_plus_duration'] = '-'
-        log['content_digest'] = '-'
-        log['annotations'] = '-'
+        log['mimetype'] = '-'
+        log['hop_path'] = request.meta.get('hop_path','')
+        log['seed'] = request.meta.get('source','-')
+        log['via'] = request.meta.get('via','-')
+        log['thread'] = request.meta.get('thread','-')
+        log['start_time_plus_duration'] = request.meta.get('start_time_plus_duration','-')
+        log['content_digest'] = request.meta.get('content_digest','-')
+        log['annotations'] = request.meta.get('annotations','-')
 
         return log
 
 
 class CrawlLogItemSpiderMiddleware(object):
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the spider middleware does not modify the
-    # passed objects.
+    """
+    Emits a Crawl Log Item for every response.
+    """
 
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
     def process_spider_output(self, response, result, spider):
@@ -149,12 +149,6 @@ class CrawlLogItemSpiderMiddleware(object):
         spider.logger.info('process_spider_output: %s' % spider.name)
         yield to_item(response.request, response)
         for i in result:
-            if isinstance(i, scrapy.Request):
-                # Copy hop path so downloader can update it:
-                if 'source' in response.meta:
-                    i.meta['source'] = response.meta['source']
-                #i.meta['hop_path'] = response.meta.get('hop_path', '')
-                #i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
             yield i
 
     def process_spider_exception(self, response, exception, spider):
@@ -165,39 +159,27 @@ class CrawlLogItemSpiderMiddleware(object):
         # or Item objects.
         spider.logger.info('process_spider_exception: %s' % spider.name)
         yield to_item(response.request, exception)
-        pass
-
-    def process_start_requests(self, start_requests, spider):
-        # Set source == Seed URL if not otherwise set:
-        for r in start_requests:
-            if not 'source' in r.meta:
-                r.meta['source'] = r.url
-            yield r
-
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
 
 
 class CrawlLogDownloaderMiddleware(object):
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the downloader middleware does not modify the
-    # passed objects.
+
+    start_time_format = "%Y%m%d%H%M%S%f"
 
     crawl_log = logging.getLogger('CrawlLogDownloaderMiddleware')
 
     fh = TimedRotatingFileHandler('crawl.log', when='midnight', encoding='utf-8', delay=True, utc=True)
     fh.setFormatter(logging.Formatter('%(message)s'))
     fh.setLevel(logging.INFO)
-    fh.doRollover()
-    crawl_log.propagate = False
+    crawl_log.propagate = False # Only log locally, not to 
     crawl_log.addHandler(fh)
 
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.request_reached_downloader, signal=signals.request_reached_downloader)
+        crawler.signals.connect(s.bytes_received, signal=signals.bytes_received)
+        crawler.signals.connect(s.response_downloaded, signal=signals.response_downloaded)
         return s
 
     def process_response(self, request, response, spider):
@@ -219,9 +201,23 @@ class CrawlLogDownloaderMiddleware(object):
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
         self.crawl_log.info(err_to_item(request,exception).to_h3_log())
-        pass
 
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
+    def request_reached_downloader(self, request, spider):
+        request.meta['start_time_plus_duration'] = datetime.utcnow().strftime(self.start_time_format)
+        request.meta['download_bytes'] = 0
+        request.meta['__download_hasher'] = sha1()
+
+    def bytes_received(self, data, request, spider):
+        request.meta['download_bytes'] += len(data)
+        request.meta['__download_hasher'].update(data)
+    
+    def response_downloaded(self, request, spider):
+        finish_time = datetime.utcnow()
+        start_time = datetime.strptime(request.meta['start_time_plus_duration'], self.start_time_format)
+        request.meta['start_time_plus_duration'] += "+" + str((finish_time-start_time).microseconds / 1000)
+        sha1_sum = request.meta.pop('__download_hasher')
+        request.meta['content_digest'] = b32encode(sha1_sum.digest()).decode('utf-8')
+    
+
 
 

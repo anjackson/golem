@@ -44,8 +44,10 @@ class WarchiverSpider(scrapy.Spider):
     custom_settings = {
         "SCHEDULER": 'urlfrontier.scheduler.URLFrontierScheduler',
         "SCHEDULER_URLFRONTIER_ENDPOINT": '127.0.0.1:7071',
-        "DOWNLOAD_DELAY": 2.0,
+        "DOWNLOAD_DELAY": 5.0,
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
+        "REFERER_ENABLED": True, # So the log can log the referring URLs
+        # Switching this off will stop the hop path tracking working.
         "REDIRECT_ENABLED": True, # Let the Scrapy downloader middleware handle redirects
         "HTTPERROR_ALLOW_ALL": False, # Make this spider process all outcomes (404s etc.).
         "FEEDS": {
@@ -58,7 +60,7 @@ class WarchiverSpider(scrapy.Spider):
             'golem.middleware.hop_path.HopPathSpiderMiddleware': 1,
             # If a homepage gets crawled, crawl well-known URIs for that host:
             'golem.middleware.well_known.WellKnownURISpiderMiddleware': 5,
-            # Emit Crawl Log Items for each result:
+            # Emit Crawl Log Items for each result (also track source references):
             'golem.middleware.crawl_log.CrawlLogItemSpiderMiddleware': 10,
         },
         "DOWNLOADER_MIDDLEWARES": {
@@ -67,5 +69,4 @@ class WarchiverSpider(scrapy.Spider):
             # Put hop path middleware at the end so that gets updated first on response, before logging:
             'golem.middleware.hop_path.HopPathDownloaderMiddleware':   999999
         },
-        #"LOG_LEVEL": "INFO",
     }

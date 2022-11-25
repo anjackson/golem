@@ -42,6 +42,10 @@ class HopPathSpiderMiddleware(object):
     
     The discovery path of a seed is an empty string.
 
+    This part is needed to copy the current hop path from the response to the spider outputs.
+
+    Also records the 'via' and 'source' so we can track how we got to this URL
+
     See <https://heritrix.readthedocs.io/en/latest/glossary.html>
     """
 
@@ -49,40 +53,34 @@ class HopPathSpiderMiddleware(object):
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         # FIXME Drop requests if hop path over configurable limit.
         # FIXME Warn that redirects won't be logged if REDIRECT_ENABLED=True
         return s
 
     # Copy the hop_path into the results so it can get updated later:
     def process_spider_output(self, response, result, spider: scrapy.Spider):
-        # Follow redirects:
-        if 'location_ORF' in response.headers:
-            yield self._update_hop_path(
-                Request(
-                url=response.headers['Location'].decode('utf-8'),
-                meta={'hop': Hop.Redirect.value}
-                )
-            )
         # And update hops for output from spider:
         for i in result:
             if isinstance(i, scrapy.Request):
                 # Copy hop path so downloader can update it:
                 i.meta['hop_path'] = response.meta.get('hop_path', '')
                 i.meta['hop'] = i.meta.get('hop', Hop.Link.value)
+                # Add the via:
+                i.meta['via'] = response.url
+                # Copy source so downloader can update it:
+                if 'source' in response.meta:
+                    i.meta['source'] = response.meta['source']
+                
             yield i
 
-    def _update_hop_path(self, r):
-        # Update the hop_path based on the 'hop', defaulting to 'L'
-        if 'hop_path' not in r.meta:
-            r.meta['hop_path'] = ''
-        hop = r.meta.get('hop', Hop.Link.value)
-        r.meta['hop_path'] += hop
-        # And return:
-        return r
+    def process_start_requests(self, start_requests, spider):
+        # Set source == Seed URL if not otherwise set:
+        # (only works for start_requests defined in spiders)
+        for r in start_requests:
+            if not 'source' in r.meta:
+                r.meta['source'] = r.url
 
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
+            yield r
 
 
 class HopPathDownloaderMiddleware(object):
@@ -94,7 +92,6 @@ class HopPathDownloaderMiddleware(object):
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
     def process_response(self, request, response, spider):
@@ -112,11 +109,9 @@ class HopPathDownloaderMiddleware(object):
             hop = request.meta.get('hop', Hop.Link.value)
             if 'redirect_urls' in request.meta:
                 hop = Hop.Redirect.value
+                request.meta['via'] = request.meta['redirect_urls'][0]
             request.meta['hop_path'] = request.meta['hop_path'] + hop
 
         return response
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
 
 

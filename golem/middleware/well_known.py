@@ -32,20 +32,17 @@ class WellKnownURISpiderMiddleware(object):
     Based on https://github.com/ukwa/ukwa-heritrix/blob/master/src/main/java/uk/bl/wap/modules/extractor/ExtractorHTTPWellKnownURIs.java
     """
 
-    #Hop.Inferred
-
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
     def process_spider_output(self, response, result, spider: scrapy.Spider):
         # If the URL is a home page, generate variations for this home page:
         url = urlparse(response.url,allow_fragments=False)
         if url.path == '/':
-            spider.logger.debug(f"Homepage {url} crawled, so enqueing well-known URIs.")
+            spider.logger.debug(f"Homepage {url} crawled, so enqueueing well-known URIs.")
             for wku in DEFAULT_WELL_KNOWN_URIS:
                 # FIXME should this clone-and-replace?
                 yield Request(
@@ -57,6 +54,3 @@ class WellKnownURISpiderMiddleware(object):
         # And output the rest of the results from the spider
         for i in result:
             yield i
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
