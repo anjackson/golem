@@ -146,7 +146,6 @@ class CrawlLogItemSpiderMiddleware(object):
         # it has processed the response.
 
         # Must return an iterable of Request, dict or Item objects.
-        spider.logger.info('process_spider_output: %s' % spider.name)
         yield to_item(response.request, response)
         for i in result:
             yield i
@@ -157,7 +156,6 @@ class CrawlLogItemSpiderMiddleware(object):
 
         # Should return either None or an iterable of Request, dict
         # or Item objects.
-        spider.logger.info('process_spider_exception: %s' % spider.name)
         yield to_item(response.request, exception)
 
 
