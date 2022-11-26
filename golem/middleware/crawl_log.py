@@ -85,7 +85,7 @@ class CrawlLogItem(scrapy.Item):
 def to_item(request: Request, response: Response, datetime=datetime.now(timezone.utc)):
         log = CrawlLogItem()
         log['url'] = response.url
-        log['timestamp'] = datetime.isoformat()
+        log['timestamp'] = datetime.now().isoformat()
         log['status_code'] = response.status
         log['content_length'] = len(response.body)
         log['mimetype'] = response.headers.get('content-type', b'-').decode('utf-8')
@@ -102,7 +102,7 @@ def to_item(request: Request, response: Response, datetime=datetime.now(timezone
 def err_to_item(request: Request, exception, datetime=datetime.now(timezone.utc)):
         log = CrawlLogItem()
         log['url'] = request.url
-        log['timestamp'] = datetime.isoformat()
+        log['timestamp'] = datetime.now().isoformat()
         # https://heritrix.readthedocs.io/en/latest/glossary.html#status-codes
         if isinstance(exception, HttpError):
             log['status_code'] = -2

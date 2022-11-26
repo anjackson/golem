@@ -69,4 +69,19 @@ class WarchiverSpider(scrapy.Spider):
             # Put hop path middleware at the end so that gets updated first on response, before logging:
             'golem.middleware.hop_path.HopPathDownloaderMiddleware':   999999
         },
+        # Broad Crawl settings (general)
+        # https://docs.scrapy.org/en/latest/topics/broad-crawls.html
+        'CONCURRENT_REQUESTS': 100,
+        'REACTOR_THREADPOOL_MAXSIZE': 20,
+        'LOG_LEVEL': 'INFO',
+        'COOKIES_ENABLED': False,
+        # Broad Crawl settings (default scheduler only)
+        'SCHEDULER_PRIORITY_QUEUE': 'scrapy.pqueues.DownloaderAwarePriorityQueue',
+        # Breadth-first order (default scheduler only):
+        # https://docs.scrapy.org/en/latest/faq.html#faq-bfo-dfo
+        'DEPTH_PRIORITY': 1,
+        'SCHEDULER_DISK_QUEUE': 'scrapy.squeues.PickleFifoDiskQueue',
+        'SCHEDULER_MEMORY_QUEUE': 'scrapy.squeues.FifoMemoryQueue',
+        # Alternative Twisted Reactor (?)
+        #'TWISTED_REACTOR': 'twisted.internet.asyncioreactor.AsyncioSelectorReactor',
     }

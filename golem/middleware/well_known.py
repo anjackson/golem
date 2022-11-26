@@ -21,8 +21,10 @@ DEFAULT_WELL_KNOWN_URIS = [
     "/ads.txt", 
     "/sellers.json",
     "/.well-known/security.txt",
+    "/.well-known/host-meta",
     "/.well-known/host-meta.json",
     "/.well-known/dat",
+    "/.well-known/nodeinfo",
 ]
 
 class WellKnownURISpiderMiddleware(object):
