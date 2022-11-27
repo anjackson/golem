@@ -94,7 +94,7 @@ def to_item(request: Request, response: Response, datetime=datetime.now(timezone
         log['via'] = request.meta.get('via','-')
         log['thread'] = request.meta.get('thread','-')
         log['start_time_plus_duration'] = request.meta.get('start_time_plus_duration','-')
-        log['content_digest'] = request.meta.get('content_digest','-')
+        log['content_digest'] = b32encode( sha1(response.body).digest() ).decode('utf-8')
         log['annotations'] = request.meta.get('annotations','-')
 
         return log
@@ -159,12 +159,41 @@ class CrawlLogItemSpiderMiddleware(object):
         yield to_item(response.request, exception)
 
 
+class ResponseDigestDownloaderMiddleware(object):
+    """
+    Calculates the length and digest of the HTTP response.
+    Connects to download signals so hashes the 'raw' (transfer/content encoded) response.
+    """
+    
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls()
+        crawler.signals.connect(s.request_reached_downloader, signal=signals.request_reached_downloader)
+        crawler.signals.connect(s.bytes_received, signal=signals.bytes_received)
+        crawler.signals.connect(s.response_downloaded, signal=signals.response_downloaded)
+        return s
+
+    def request_reached_downloader(self, request, spider):
+        request.meta['response_bytes'] = 0
+        request.meta['__download_hasher'] = sha1()
+
+    def bytes_received(self, data, request, spider):
+        request.meta['response_bytes'] += len(data)
+        request.meta['__download_hasher'].update(data)
+    
+    def response_downloaded(self, request, spider):
+        sha1_sum = request.meta.pop('__download_hasher')
+        request.meta['response_digest'] = b32encode(sha1_sum.digest()).decode('utf-8')
+    
+
 class CrawlLogDownloaderMiddleware(object):
+    """
+    """
 
     start_time_format = "%Y%m%d%H%M%S%f"
 
     crawl_log = logging.getLogger('CrawlLogDownloaderMiddleware')
-
     fh = TimedRotatingFileHandler('crawl.log', when='midnight', encoding='utf-8', delay=True, utc=True)
     fh.setFormatter(logging.Formatter('%(message)s'))
     fh.setLevel(logging.INFO)
@@ -176,7 +205,6 @@ class CrawlLogDownloaderMiddleware(object):
         # This method is used by Scrapy to create your spiders.
         s = cls()
         crawler.signals.connect(s.request_reached_downloader, signal=signals.request_reached_downloader)
-        crawler.signals.connect(s.bytes_received, signal=signals.bytes_received)
         crawler.signals.connect(s.response_downloaded, signal=signals.response_downloaded)
         return s
 
@@ -202,20 +230,10 @@ class CrawlLogDownloaderMiddleware(object):
 
     def request_reached_downloader(self, request, spider):
         request.meta['start_time_plus_duration'] = datetime.utcnow().strftime(self.start_time_format)
-        request.meta['download_bytes'] = 0
-        request.meta['__download_hasher'] = sha1()
-
-    def bytes_received(self, data, request, spider):
-        request.meta['download_bytes'] += len(data)
-        request.meta['__download_hasher'].update(data)
     
     def response_downloaded(self, request, spider):
         finish_time = datetime.utcnow()
         start_time = datetime.strptime(request.meta['start_time_plus_duration'], self.start_time_format)
         request.meta['start_time_plus_duration'] += "+" + str((finish_time-start_time).microseconds / 1000)
-        sha1_sum = request.meta.pop('__download_hasher')
-        request.meta['content_digest'] = b32encode(sha1_sum.digest()).decode('utf-8')
-    
-
 
 
