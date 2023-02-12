@@ -43,9 +43,9 @@ class CrawlLogItem(scrapy.Item):
     mimetype = scrapy.Field()
     # TODO??? the 8th column has the id of the worker thread that downloaded this document, 
     thread = scrapy.Field()
-    # TODO??? the 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
+    # The 9th column holds a timestamp (in RFC2550/ARC condensed digits-only format) indicating when a network fetch was begun, and if appropriate, the millisecond duration of the fetch, separated from the begin-time by a '+' character.
     start_time_plus_duration = scrapy.Field()
-    # TODO The 10th field is a SHA1 digest of the content only (headers are not digested). 
+    # The 10th field is a SHA1 digest of the content only (headers are not digested). 
     content_digest = scrapy.Field()
     # The 11th column is the 'source tag' inherited by this URI, if that feature is enabled. 
     seed = scrapy.Field()

@@ -2,6 +2,9 @@ version: "3"
 
 services:
 
+  golem:
+    build: .
+
   pywb-warcprox:
     image: webrecorder/pywb:2.6.8
     command: /start-pywb.sh

@@ -36,16 +36,18 @@ class WarchiverSpider(scrapy.Spider):
     def parse(self, response: Response):        
         if isinstance(response, TextResponse):
             links = response.css('a::attr(href)')
-            print(len(links))
+            print(f"Number of links found: {len(links)}")
             for href in links:
                 print(response.urljoin(href.extract()))
                 #yield response.follow(href, self.parse)
 
     custom_settings = {
-        "SCHEDULER": 'urlfrontier.scheduler.URLFrontierScheduler',
+        #"SCHEDULER": 'urlfrontier.scheduler.URLFrontierScheduler',
         "SCHEDULER_URLFRONTIER_ENDPOINT": '127.0.0.1:7071',
         "DOWNLOAD_DELAY": 5.0,
         "REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7",
+        # Switch off 'Accept-Encoding: gzip' compression support:
+        'COMPRESSION_ENABLED': False,
         "REFERER_ENABLED": True, # So the log can log the referring URLs
         # Switching this off will stop the hop path tracking working.
         "REDIRECT_ENABLED": True, # Let the Scrapy downloader middleware handle redirects
@@ -64,6 +66,8 @@ class WarchiverSpider(scrapy.Spider):
             'golem.middleware.crawl_log.CrawlLogItemSpiderMiddleware': 10,
         },
         "DOWNLOADER_MIDDLEWARES": {
+            # Record the response digest and length:
+            'golem.middleware.crawl_log.ResponseDigestDownloaderMiddleware': 999997,
             # Install at the end so all robots.txt/3xx/4xx/5xx can be observed:
             'golem.middleware.crawl_log.CrawlLogDownloaderMiddleware': 999998,
             # Put hop path middleware at the end so that gets updated first on response, before logging:
